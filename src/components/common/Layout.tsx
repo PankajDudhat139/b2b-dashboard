@@ -74,7 +74,7 @@ export const Layout: React.FC<LayoutProps> = ({
             <FooterLink href="/terms">Terms of Service</FooterLink>
             <FooterLink href="/contact">Contact</FooterLink>
           </FooterLinks>
-          <p>&copy; 2024 BizMatch. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} BizMatch. All rights reserved.</p>
         </FooterContent>
       </Footer>
     </LayoutContainer>

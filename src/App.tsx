@@ -1,9 +1,11 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
 import { GlobalStyles } from './styles/GlobalStyles';
 import { theme } from './styles/theme';
 import { Layout } from './components/common/Layout';
+import { NotFound } from './components/common/NotFound';
+import { NotFoundWithLayout } from './components/common/NotFoundWithLayout';
 import { SellerOnboarding } from './components/onboarding/SellerOnboarding';
 import { BuyerOnboarding } from './components/onboarding/BuyerOnboarding';
 import { AcquisitionWorkflow } from './components/acquisition/AcquisitionWorkflow';
@@ -51,13 +53,26 @@ const ButtonGroup = styled.div`
 
 const OnboardingPage: React.FC = () => {
   const [userType, setUserType] = React.useState<'buyer' | 'seller' | null>(null);
-  const { completeOnboarding } = useAuth();
+  const { user, completeOnboarding } = useAuth();
+  const navigate = useNavigate();
+
+  // If user already exists but hasn't completed onboarding, set their type
+  React.useEffect(() => {
+    if (user && !user.isOnboardingComplete && !userType) {
+      setUserType(user.type);
+    }
+  }, [user, userType]);
 
   const handleComplete = (profile: any) => {
     console.log('Profile completed:', profile);
     completeOnboarding(profile);
-    // Redirect to dashboard
-    window.location.href = '/dashboard';
+    // Use React Router navigation instead of window.location
+    navigate('/dashboard', { replace: true });
+  };
+
+  const handleUserTypeSelect = (type: 'buyer' | 'seller') => {
+    setUserType(type);
+    // You might want to create a temporary user here or pass the type to onboarding
   };
 
   if (!userType) {
@@ -69,10 +84,10 @@ const OnboardingPage: React.FC = () => {
             The modern platform for business acquisitions. Are you looking to buy or sell a business?
           </WelcomeSubtitle>
           <ButtonGroup>
-            <Button onClick={() => setUserType('buyer')} fullWidth>
+            <Button onClick={() => handleUserTypeSelect('buyer')} fullWidth>
               I'm a Buyer 💼
             </Button>
-            <Button variant="secondary" onClick={() => setUserType('seller')} fullWidth>
+            <Button variant="secondary" onClick={() => handleUserTypeSelect('seller')} fullWidth>
               I'm a Seller 🏢
             </Button>
           </ButtonGroup>
@@ -115,38 +130,93 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
+// Component to determine which 404 page to show
+const NotFoundHandler: React.FC = () => {
+  const { user } = useAuth();
+  
+  // If user is authenticated and onboarded, show layout version
+  if (user && user.isOnboardingComplete) {
+    return <NotFoundWithLayout />;
+  }
+  
+  // Otherwise show standalone version
+  return <NotFound />;
+};
+
 const AppContent: React.FC = () => {
   return (
-    <Router>
-      <Routes>
-        <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Layout>
-              <Dashboard />
-            </Layout>
-          </ProtectedRoute>
-        } />
-        <Route path="/workflow" element={
-          <ProtectedRoute>
-            <Layout>
-              <AcquisitionWorkflow />
-            </Layout>
-          </ProtectedRoute>
-        } />
-        <Route path="/" element={<Navigate to="/onboarding" />} />
-      </Routes>
-    </Router>
+    <Routes>
+      {/* Public routes */}
+      <Route path="/onboarding" element={<OnboardingPage />} />
+      
+      {/* Protected routes */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <Layout>
+            <Dashboard />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/workflow" element={
+        <ProtectedRoute>
+          <Layout>
+            <AcquisitionWorkflow />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/buyers" element={
+        <ProtectedRoute>
+          <Layout>
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+              <h1>Browse Buyers Page</h1>
+              <p>This page is under construction.</p>
+            </div>
+          </Layout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/businesses" element={
+        <ProtectedRoute>
+          <Layout>
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+              <h1>Browse Businesses Page</h1>
+              <p>This page is under construction.</p>
+            </div>
+          </Layout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/matches" element={
+        <ProtectedRoute>
+          <Layout>
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+              <h1>Matches Page</h1>
+              <p>This page is under construction.</p>
+            </div>
+          </Layout>
+        </ProtectedRoute>
+      } />
+      
+      {/* Default redirect */}
+      <Route path="/" element={<Navigate to="/onboarding" />} />
+      
+      {/* 404 - Catch all other routes */}
+      <Route path="*" element={<NotFoundHandler />} />
+    </Routes>
   );
 };
 
 const App: React.FC = () => {
   return (
     <ThemeProvider theme={theme}>
-      <AuthProvider>
-        <GlobalStyles theme={theme} />
-        <AppContent />
-      </AuthProvider>
+      <Router>
+        <AuthProvider>
+          <GlobalStyles theme={theme} />
+          <AppContent />
+        </AuthProvider>
+      </Router>
     </ThemeProvider>
   );
 };

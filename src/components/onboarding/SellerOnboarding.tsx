@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
 import { SellerProfile, OnboardingStep } from '../../types';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 import { OnboardingLayout } from './OnboardingLayout';
+import { useAuth } from '../../hooks/useAuth';
 import { theme } from '../../styles/theme';
 
 const ProgressBar = styled.div`
@@ -154,12 +155,50 @@ export const SellerOnboarding: React.FC<SellerOnboardingProps> = ({ onComplete }
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<Partial<SellerProfile>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { user, createTemporaryUser } = useAuth();
+
+  // Create temporary user if none exists
+  useEffect(() => {
+    if (!user) {
+      createTemporaryUser('seller');
+    }
+  }, [user, createTemporaryUser]);
+
+  // Load saved data from localStorage
+  useEffect(() => {
+    const savedData = localStorage.getItem('bizMatch_sellerOnboarding');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setFormData(parsed.formData || {});
+        setCurrentStep(parsed.currentStep || 0);
+      } catch (error) {
+        console.error('Error loading saved onboarding data:', error);
+      }
+    }
+  }, []);
+
+  // Save progress to localStorage
+  const saveProgress = useCallback((data: Partial<SellerProfile>, step: number) => {
+    try {
+      localStorage.setItem('bizMatch_sellerOnboarding', JSON.stringify({
+        formData: data,
+        currentStep: step,
+        lastSaved: Date.now()
+      }));
+    } catch (error) {
+      console.error('Error saving onboarding progress:', error);
+    }
+  }, []);
 
   const handleInputChange = useCallback((field: string, value: string | number) => {
-    setFormData(prev => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       [field]: value
-    }));
+    };
+    
+    setFormData(newFormData);
+    saveProgress(newFormData, currentStep);
     
     // Clear error when user starts typing
     if (errors[field]) {
@@ -168,7 +207,7 @@ export const SellerOnboarding: React.FC<SellerOnboardingProps> = ({ onComplete }
         [field]: ''
       }));
     }
-  }, [errors]);
+  }, [formData, currentStep, errors, saveProgress]);
 
   const validateStep = () => {
     const currentStepData = sellerOnboardingSteps[currentStep];
@@ -191,21 +230,32 @@ export const SellerOnboarding: React.FC<SellerOnboardingProps> = ({ onComplete }
     if (!validateStep()) return;
     
     if (currentStep < sellerOnboardingSteps.length - 1) {
-      setCurrentStep(prev => prev + 1);
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      saveProgress(formData, nextStep);
     } else {
-      onComplete({
+      // Complete the onboarding
+      const completeProfile: SellerProfile = {
         ...formData,
-        id: Date.now().toString(),
+        id: user?.id || Date.now().toString(),
         assets: [] // Will be filled later
-      } as SellerProfile);
+      } as SellerProfile;
+      
+      // Clear saved progress
+      localStorage.removeItem('bizMatch_sellerOnboarding');
+      
+      console.log('Completing seller onboarding with:', completeProfile);
+      onComplete(completeProfile);
     }
-  }, [currentStep, formData, onComplete]);
+  }, [currentStep, formData, onComplete, user, saveProgress]);
 
   const handleBack = useCallback(() => {
     if (currentStep > 0) {
-      setCurrentStep(prev => prev - 1);
+      const prevStep = currentStep - 1;
+      setCurrentStep(prevStep);
+      saveProgress(formData, prevStep);
     }
-  }, [currentStep]);
+  }, [currentStep, formData, saveProgress]);
 
   const currentStepData = sellerOnboardingSteps[currentStep];
   const progress = ((currentStep + 1) / sellerOnboardingSteps.length) * 100;

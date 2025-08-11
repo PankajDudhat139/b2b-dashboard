@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, BuyerProfile, SellerProfile } from '../types';
-import { authService } from '../services/auth';
 
 interface AuthContextType {
   user: User | null;
@@ -10,9 +9,10 @@ interface AuthContextType {
   signup: (email: string, password: string, type: 'buyer' | 'seller') => Promise<void>;
   updateProfile: (profile: BuyerProfile | SellerProfile) => void;
   completeOnboarding: (profile: BuyerProfile | SellerProfile) => void;
+  createTemporaryUser: (type: 'buyer' | 'seller') => void;
 }
 
-export const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -22,12 +22,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Save user to localStorage
+  const saveUserToStorage = (userData: User) => {
+    try {
+      localStorage.setItem('bizMatch_user', JSON.stringify(userData));
+      localStorage.setItem('bizMatch_authToken', 'temp-token-' + userData.id);
+    } catch (error) {
+      console.error('Error saving user to localStorage:', error);
+    }
+  };
+
+  // Load user from localStorage
+  const loadUserFromStorage = (): User | null => {
+    try {
+      const userData = localStorage.getItem('bizMatch_user');
+      const token = localStorage.getItem('bizMatch_authToken');
+      
+      if (userData && token) {
+        return JSON.parse(userData);
+      }
+    } catch (error) {
+      console.error('Error loading user from localStorage:', error);
+    }
+    return null;
+  };
+
+  // Clear user from localStorage
+  const clearUserFromStorage = () => {
+    localStorage.removeItem('bizMatch_user');
+    localStorage.removeItem('bizMatch_authToken');
+  };
+
   useEffect(() => {
     // Initialize auth state from localStorage
-    const initializeAuth = async () => {
+    const initializeAuth = () => {
       try {
-        const storedUser = authService.getUser();
-        if (storedUser && authService.isAuthenticated()) {
+        const storedUser = loadUserFromStorage();
+        if (storedUser) {
           setUser(storedUser);
         }
       } catch (error) {
@@ -39,6 +70,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     initializeAuth();
   }, []);
+
+  const createTemporaryUser = (type: 'buyer' | 'seller') => {
+    const tempUser: User = {
+      id: 'temp-' + Date.now().toString(),
+      email: `temp-${type}@example.com`, // This would be set during actual signup
+      type,
+      profile: {} as any,
+      createdAt: new Date(),
+      isOnboardingComplete: false
+    };
+    
+    setUser(tempUser);
+    saveUserToStorage(tempUser);
+  };
 
   const login = async (email: string, password: string): Promise<void> => {
     setIsLoading(true);
@@ -53,10 +98,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isOnboardingComplete: false
       };
       
-      const mockToken = 'mock-jwt-token';
-      
-      authService.setAuth(mockToken, mockUser);
       setUser(mockUser);
+      saveUserToStorage(mockUser);
     } catch (error) {
       throw new Error('Login failed. Please check your credentials.');
     } finally {
@@ -65,10 +108,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = (): void => {
-    authService.clearAuth();
     setUser(null);
-    // Redirect to home page
-    window.location.href = '/';
+    clearUserFromStorage();
   };
 
   const signup = async (email: string, password: string, type: 'buyer' | 'seller'): Promise<void> => {
@@ -84,10 +125,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isOnboardingComplete: false
       };
       
-      const mockToken = 'mock-jwt-token';
-      
-      authService.setAuth(mockToken, mockUser);
       setUser(mockUser);
+      saveUserToStorage(mockUser);
     } catch (error) {
       throw new Error('Signup failed. Please try again.');
     } finally {
@@ -102,8 +141,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         profile
       };
       
-      authService.updateUser(updatedUser);
       setUser(updatedUser);
+      saveUserToStorage(updatedUser);
     }
   };
 
@@ -115,8 +154,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isOnboardingComplete: true
       };
       
-      authService.updateUser(updatedUser);
+      console.log('Completing onboarding with profile:', profile);
+      console.log('Updated user:', updatedUser);
+      
       setUser(updatedUser);
+      saveUserToStorage(updatedUser);
     }
   };
 
@@ -127,7 +169,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     signup,
     updateProfile,
-    completeOnboarding
+    completeOnboarding,
+    createTemporaryUser
   };
 
   return (
