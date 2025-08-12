@@ -1,7 +1,7 @@
-import React from 'react';
-import styled from 'styled-components';
-import { Navigation } from './Navigation';
-import { theme } from '../../styles/theme';
+import React from "react";
+import styled from "styled-components";
+import { Navigation } from "./Navigation";
+import { theme } from "../../styles/theme";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,7 +16,7 @@ const LayoutContainer = styled.div`
 
 const MainContent = styled.main<{ hasNavigation: boolean }>`
   flex: 1;
-  padding-top: ${props => props.hasNavigation ? '80px' : '0'};
+  padding-top: ${(props) => (props.hasNavigation ? "80px" : "0")};
 `;
 
 const Footer = styled.footer`
@@ -37,7 +37,7 @@ const FooterLinks = styled.div`
   justify-content: center;
   gap: ${theme.spacing.lg};
   margin-bottom: ${theme.spacing.md};
-  
+
   @media (max-width: ${theme.breakpoints.sm}) {
     flex-direction: column;
     align-items: center;
@@ -49,22 +49,20 @@ const FooterLink = styled.a`
   color: ${theme.colors.gray300};
   text-decoration: none;
   transition: color 0.3s ease;
-  
+
   &:hover {
     color: white;
   }
 `;
 
-export const Layout: React.FC<LayoutProps> = ({ 
-  children, 
-  showNavigation = true 
+export const Layout: React.FC<LayoutProps> = ({
+  children,
+  showNavigation = true,
 }) => {
   return (
     <LayoutContainer>
       {showNavigation && <Navigation />}
-      <MainContent hasNavigation={showNavigation}>
-        {children}
-      </MainContent>
+      <MainContent hasNavigation={showNavigation}>{children}</MainContent>
       <Footer>
         <FooterContent>
           <FooterLinks>
@@ -73,7 +71,9 @@ export const Layout: React.FC<LayoutProps> = ({
             <FooterLink href="/terms">Terms of Service</FooterLink>
             <FooterLink href="/contact">Contact</FooterLink>
           </FooterLinks>
-            <p>&copy; {new Date().getFullYear()} BizMatch. All rights reserved.</p>
+          <p>
+            &copy; {new Date().getFullYear()} BizMatch. All rights reserved.
+          </p>
         </FooterContent>
       </Footer>
     </LayoutContainer>
