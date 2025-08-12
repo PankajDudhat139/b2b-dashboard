@@ -71,9 +71,6 @@ export const NotFoundWithLayout: React.FC = () => {
             <Button onClick={goBack} variant="ghost">
               Go Back
             </Button>
-            <Link to="/dashboard">
-              Dashboard
-            </Link>
           </ActionButtons>
         </NotFoundCard>
       </NotFoundContent>

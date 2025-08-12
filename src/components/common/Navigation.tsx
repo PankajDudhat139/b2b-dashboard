@@ -190,6 +190,12 @@ export const Navigation: React.FC = () => {
               >
                 Workflow
               </NavLink>
+              <NavLink 
+              to="/settings" 
+              active={location.pathname === '/settings'}
+            >
+              Settings
+            </NavLink>
             </NavLinks>
             
             <MobileMenuButton onClick={toggleMobileMenu}>

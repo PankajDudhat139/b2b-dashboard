@@ -20,6 +20,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import styled from "styled-components";
 import { Button } from "./components/common/Button";
 import { BrowseBuyers } from "./components/profiles/BrowseBuyers";
+import { SettingsPage } from "./components/settings/SettingsPage";
 
 const OnboardingContainer = styled.div`
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -224,6 +225,17 @@ const AppContent: React.FC = () => {
                 <h1>Matches Page</h1>
                 <p>This page is under construction.</p>
               </div>
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <SettingsPage />
             </Layout>
           </ProtectedRoute>
         }

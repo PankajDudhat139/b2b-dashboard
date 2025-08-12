@@ -24,7 +24,6 @@ const Footer = styled.footer`
   color: white;
   padding: ${theme.spacing.xl} 0;
   text-align: center;
-  margin-top: auto;
 `;
 
 const FooterContent = styled.div`
